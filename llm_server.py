@@ -7,7 +7,7 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 API_KEY = "EMPTY"
-API_BASE = "http://localhost:8000/v1"
+API_BASE = "http://192.168.11.101:8080/v1"
 MODEL = "gpt-3.5-turbo"
 
 from langchain.prompts import (

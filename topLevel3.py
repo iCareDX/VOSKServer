@@ -15,7 +15,7 @@ def int_or_str(text):
         return int(text)
     except ValueError:
         return text
-    
+
 def callback(indata, frames, time, status):
     """Callback function to receive audio data and put it in a queue."""
     if not is_speaking:
@@ -25,9 +25,12 @@ async def send_to_tts(websocket_tts, text):
     """Send text to TTS server and wait for completion signal."""
     global is_speaking
     is_speaking = True
+    text = text.strip()  # Remove any leading/trailing whitespace and newlines
+    print(f"TTS send data: {text}")
     await websocket_tts.send(text)
     await websocket_tts.recv()  # Wait for TTS completion signal
     is_speaking = False
+    print("TTS completed")
 
 async def run_test():
     global is_speaking
@@ -35,8 +38,12 @@ async def run_test():
     with sd.RawInputStream(samplerate=args.samplerate, blocksize=4000, device=args.device, dtype='int16',
                            channels=1, callback=callback) as device:
         async with websockets.connect(args.uri) as websocket_asr, \
-                   websockets.connect(args.llm_uri) as websocket_llm: \
-                   #websockets.connect(args.tts_uri) as websocket_tts:
+                   websockets.connect(args.llm_uri) as websocket_llm, \
+                   websockets.connect(args.tts_uri) as websocket_tts:
+            print(f"Connected to ASR server at {args.uri}")
+            print(f"Connected to LLM server at {args.llm_uri}")
+            print(f"Connected to TTS server at {args.tts_uri}")
+            
             await websocket_asr.send(json.dumps({"config": {"sample_rate": device.samplerate}}))
 
             while True:
@@ -46,8 +53,13 @@ async def run_test():
                 result_json = json.loads(result)
                 
                 if 'result' in result_json:
-                    recognized_text = result_json['result']
+                    recognized_text_list = result_json['result']
+                    recognized_text = ' '.join([word_info['word'] for word_info in recognized_text_list])
                     print("Final Recognized Text:", recognized_text)
+                    
+                    # Ensure recognized_text is a string
+                    if not isinstance(recognized_text, str):
+                        recognized_text = str(recognized_text)
                     
                     # Send recognized text to LLM WebSocket
                     await websocket_llm.send(recognized_text)
@@ -55,10 +67,11 @@ async def run_test():
                     print("LLM Response:", llm_response)
                     
                     # Split LLM response into sentences and send to TTS
-                    sentences = re.split(r'(?<=[.!?]) +', llm_response)
+                    sentences = re.split(r'(?<=[.!?。])\s+', llm_response)
+                    print(f"Split sentences: {sentences}")
                     for sentence in sentences:
-                        #await send_to_tts(websocket_tts, sentence)
-                        print(sentence)
+                        if sentence:  # Ensure not to send empty strings
+                            await send_to_tts(websocket_tts, sentence)
 
                 if 'final' in result_json and result_json['final']:
                     break
@@ -87,8 +100,8 @@ async def main():
                         help='ASR Server URL', default='ws://localhost:2700')
     parser.add_argument('-l', '--llm_uri', type=str, metavar='URL',
                         help='LLM Server URL', default='ws://localhost:8765')
-    #parser.add_argument('-t', '--tts_uri', type=str, metavar='URL',
-    #                    help='TTS Server URL', default='ws://localhost:8766')
+    parser.add_argument('-t', '--tts_uri', type=str, metavar='URL',
+                        help='TTS Server URL', default='ws://localhost:8766')
     parser.add_argument('-i', '--device', type=int_or_str,
                         help='input device (numeric ID or substring)')
     parser.add_argument('-r', '--samplerate', type=int, help='sampling rate', default=16000)

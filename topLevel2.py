@@ -35,11 +35,11 @@ async def run_test():
     with sd.RawInputStream(samplerate=args.samplerate, blocksize=4000, device=args.device, dtype='int16',
                            channels=1, callback=callback) as device:
         async with websockets.connect(args.uri) as websocket_asr, \
-                   websockets.connect(args.llm_uri) as websocket_llm: \
-                   #websockets.connect(args.tts_uri) as websocket_tts:
+                   websockets.connect(args.llm_uri) as websocket_llm, \
+                   websockets.connect(args.tts_uri) as websocket_tts:
             print(f"Connected to ASR server at {args.uri}")
             print(f"Connected to LLM server at {args.llm_uri}")
-            #print(f"Connected to TTS server at {args.tts_uri}")
+            print(f"Connected to TTS server at {args.tts_uri}")
             
             await websocket_asr.send(json.dumps({"config": {"sample_rate": device.samplerate}}))
 
@@ -69,8 +69,8 @@ async def run_test():
                     # Split LLM response into sentences and send to TTS
                     sentences = re.split(r'(?<=[.!?]) +', llm_response)
                     for sentence in sentences:
-                        #await send_to_tts(websocket_tts, sentence)
-                        print(sentence)
+                        await send_to_tts(websocket_tts, sentence)
+                        print("TTS send data:", sentence)
 
                 if 'final' in result_json and result_json['final']:
                     break
@@ -99,8 +99,8 @@ async def main():
                         help='ASR Server URL', default='ws://localhost:2700')
     parser.add_argument('-l', '--llm_uri', type=str, metavar='URL',
                         help='LLM Server URL', default='ws://localhost:8765')
-    #parser.add_argument('-t', '--tts_uri', type=str, metavar='URL',
-    #                    help='TTS Server URL', default='ws://localhost:8766')
+    parser.add_argument('-t', '--tts_uri', type=str, metavar='URL',
+                        help='TTS Server URL', default='ws://localhost:8766')
     parser.add_argument('-i', '--device', type=int_or_str,
                         help='input device (numeric ID or substring)')
     parser.add_argument('-r', '--samplerate', type=int, help='sampling rate', default=16000)
