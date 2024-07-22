@@ -1,3 +1,16 @@
+#Top level loop by Websocket server
+
+first start the 3 servers:
+asr_server.py 
+llm_server.py
+aques_server.py
+
+Then start the toplevel program
+toplevel.py
+
+
+
+
 # VOSKServer
 Speech to text server by VOSK
 
@@ -10,3 +23,5 @@ asr_server === test_microphone.py
 asr_server2 === test_microphone3.py
 
 無音検出のパラメータ調整が難しいので，オリジナルバージョン（何もしない）の方が良いかもしれません．
+
+
