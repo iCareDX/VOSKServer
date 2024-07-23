@@ -49,6 +49,7 @@ async def run_test():
                     
                     # Split LLM response into sentences and send to TTS
                     sentences = re.split(r'(?<=[.!?]) +', llm_response)
+                    sentences = re.split(r'(?<=[.!?．。？！])\s*|\n', llm_response)
                     for sentence in sentences:
                         await send_to_tts(websocket_tts, sentence)
 

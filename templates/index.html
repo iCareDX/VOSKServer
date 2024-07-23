@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Recognition and LLM Response</title>
+    <script type="text/javascript">
+        const eventSource = new EventSource("/events");
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            document.getElementById("recognition_result").innerText = data.recognition_result;
+            document.getElementById("llm_response").innerText = data.llm_response;
+        };
+    </script>
+</head>
+<body>
+    <h1>Voice Recognition and LLM Response</h1>
+    <h2>Recognition Result:</h2>
+    <p id="recognition_result">{{ recognition_result }}</p>
+    <h2>LLM Response:</h2>
+    <p id="llm_response">{{ llm_response }}</p>
+</body>
+</html>
