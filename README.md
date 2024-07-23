@@ -1,3 +1,17 @@
+# Server-based Integration of STT(Speech-To-Text), LLM, TTS(Text-To-Speech) 
+
+##First start the three servers:
+asr_server.py
+llm_server.py
+aques_server.py
+
+##Then start the toplevel
+toplevel.py
+
+#Browser
+toplevel_browser.py
+
+
 # VOSKServer
 Speech to text server by VOSK
 
