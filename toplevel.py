@@ -41,7 +41,8 @@ async def process_llm_response(websocket_llm, websocket_tts, recognized_text):
         print("LLM Response:", llm_response)
 
         # Split LLM response into sentences and send to TTS
-        sentences = re.split(r'(?<=[.!?。])\s+', llm_response)
+        #sentences = re.split(r'(?<=[.!?。])\s+', llm_response)
+        sentences = re.split(r'(?<=[,.，。？！])\s*|\n', llm_response)
         print(f"Split sentences: {sentences}")
         for sentence in sentences:
             if sentence:  # Ensure not to send empty strings

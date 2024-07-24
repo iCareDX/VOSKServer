@@ -1,7 +1,3 @@
-# llm_server.py
-
-#from conversation_chain import ConversationChain
-#from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
@@ -10,7 +6,6 @@ import websockets
 import json
 
 from langchain_openai import ChatOpenAI
-#from langchain_community import ChatModel
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 API_KEY = "EMPTY"
@@ -31,8 +26,7 @@ llm = ChatOpenAI(model_name=MODEL,
                   callbacks=[StreamingStdOutCallbackHandler()] ,
                   temperature=0)
 
-
-# テンプレートの準備
+# Template setup
 template = """
 あなたは日本語で会話する高齢者介護スタッフです。あなたのプロフィールは以下です。
 名前: わんこ
@@ -49,8 +43,7 @@ template = """
 自分のプロフィールについては聞かれた時だけに答えてください。また、必要なら下記のコンテクスト情報を参考にして回答してください。
 """
 
-
-# chatプロンプトテンプレートの準備
+# Chat prompt template setup
 prompt = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(template),
     MessagesPlaceholder(variable_name="history"),
@@ -58,15 +51,34 @@ prompt = ChatPromptTemplate.from_messages([
 ])
 
 from langchain.chains import ConversationChain
-#from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 
-# メモリの準備
-memory = ConversationBufferMemory(return_messages=True)
+TOKEN_LIMIT = 2048
 
-# 会話チェーンの準備
-#conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
-   
+class TruncatedConversationBufferMemory(ConversationBufferMemory):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_token_count(self, text):
+        # Simple token count estimation
+        return len(text.split())
+
+    def truncate_history(self):
+        total_tokens = sum(self.get_token_count(msg.content) for msg in self.messages)
+        while total_tokens > TOKEN_LIMIT:
+            removed_message = self.messages.pop(0)
+            total_tokens -= self.get_token_count(removed_message.content)
+
+    def add_message(self, message):
+        super().add_message(message)
+        self.truncate_history()
+
+# Memory setup with truncation
+memory = TruncatedConversationBufferMemory(return_messages=True)
+
+# Conversation chain setup
+conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
+
 async def handle_connection(websocket, path):
     async for message in websocket:
         print(f"Received message: {message}")
@@ -79,5 +91,4 @@ async def main():
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
-    conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)  # Initialize your LLM
     asyncio.run(main())
