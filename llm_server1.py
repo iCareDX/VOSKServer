@@ -20,11 +20,11 @@ from langchain.prompts import (
 )
 
 llm = ChatOpenAI(model_name=MODEL, 
-                  openai_api_key=API_KEY, 
-                  openai_api_base=API_BASE,
-                  streaming=True, 
-                  callbacks=[StreamingStdOutCallbackHandler()] ,
-                  temperature=0)
+                 openai_api_key=API_KEY, 
+                 openai_api_base=API_BASE,
+                 streaming=True, 
+                 callbacks=[StreamingStdOutCallbackHandler()] ,
+                 temperature=0)
 
 # Template setup
 template = """
@@ -50,10 +50,9 @@ prompt = ChatPromptTemplate.from_messages([
     HumanMessagePromptTemplate.from_template("{input}")
 ])
 
-from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 
-TOKEN_LIMIT = 2020
+TOKEN_LIMIT = 2048
 
 class TruncatedConversationBufferMemory(ConversationBufferMemory):
     def __init__(self, *args, **kwargs):
@@ -65,31 +64,40 @@ class TruncatedConversationBufferMemory(ConversationBufferMemory):
 
     def truncate_history(self):
         total_tokens = sum(self.get_token_count(msg.content) for msg in self.messages)
-        print("Total tokens: {total_tokens}")
         while total_tokens > TOKEN_LIMIT:
-            removed_message = self.messages.pop(0)
-            total_tokens -= self.get_token_count(removed_message.content)
+            # Remove the oldest messages until the token count is within the limit
+            self.messages.pop(0)
+            total_tokens = sum(self.get_token_count(msg.content) for msg in self.messages)
 
-    def add_message(self, message):
-        super().add_message(message)
-        self.truncate_history()
-
-# Memory setup with truncation
-memory = TruncatedConversationBufferMemory(return_messages=True)
-
-# Conversation chain setup
-conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm)
+# Use the custom memory class
+memory = TruncatedConversationBufferMemory(memory_key="history", return_messages=True)
+conversation = RunnableWithMessageHistory(
+    llm=llm,
+    prompt=prompt,
+    memory=memory,
+)
 
 async def handle_connection(websocket, path):
-    async for message in websocket:
-        print(f"Received message: {message}")
-        response = conversation.predict(input=message)
-        await websocket.send(response)
-        print(f"Sent response: {response}")
+    try:
+        async for message in websocket:
+            print(f"Received message: {message}")
+            
+            # トークン数を計算し、超過する場合はトリミング
+            memory.save_context({"input": message}, {"output": ""})
+            memory.truncate_history()
+
+            # トリミング後のメッセージを用いて予測を生成
+            response = conversation.predict(input=message)
+
+            await websocket.send(response)
+    except Exception as e:
+        print(f"Connection handler failed: {e}")
+    finally:
+        await websocket.close()
 
 async def main():
     async with websockets.serve(handle_connection, "localhost", 8765):
-        await asyncio.Future()  # Run forever
+        await asyncio.Future()  # run forever
 
 if __name__ == "__main__":
     asyncio.run(main())
