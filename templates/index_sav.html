@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Recognized Text and LLM Response</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+      document.addEventListener('DOMContentLoaded', (event) => {
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('update_text', function(data) {
+          document.getElementById('recognized_text').innerText = data.recognized_text;
+          document.getElementById('llm_response').innerText = data.llm_response;
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Recognized Text</h1>
+    <p id="recognized_text"></p>
+    <h1>LLM Response</h1>
+    <p id="llm_response"></p>
+  </body>
+</html>

@@ -1,22 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Voice Recognition and LLM Response</title>
-    <script type="text/javascript">
-        const eventSource = new EventSource("/events");
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            document.getElementById("recognition_result").innerText = data.recognition_result;
-            document.getElementById("llm_response").innerText = data.llm_response;
-        };
+  <head>
+    <meta charset="utf-8">
+    <title>Recognized Text and LLM Response</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+      document.addEventListener('DOMContentLoaded', (event) => {
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('update_text', function(data) {
+          var historyContainer = document.getElementById('conversation_history');
+
+          // 既存のハイライトをクリア
+          var highlighted = document.querySelectorAll('.highlight');
+          highlighted.forEach(function(item) {
+            item.classList.remove('highlight');
+          });
+
+          // 最新のメッセージを追加してハイライトする
+          let userText = document.createElement('p');
+          userText.innerText = "User: " + data.recognized_text_history[data.recognized_text_history.length - 1];
+          userText.classList.add('highlight'); // ハイライトクラスを追加
+          historyContainer.appendChild(userText);
+
+          let aiText = document.createElement('p');
+          aiText.innerText = "AI: " + data.llm_response_history[data.llm_response_history.length - 1];
+          aiText.classList.add('highlight'); // ハイライトクラスを追加
+          historyContainer.appendChild(aiText);
+
+          // 最新のメッセージに自動スクロール
+          historyContainer.scrollTop = historyContainer.scrollHeight;
+        });
+      });
     </script>
-</head>
-<body>
-    <h1>Voice Recognition and LLM Response</h1>
-    <h2>Recognition Result:</h2>
-    <p id="recognition_result">{{ recognition_result }}</p>
-    <h2>LLM Response:</h2>
-    <p id="llm_response">{{ llm_response }}</p>
-</body>
+    <style>
+      #conversation_history {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        display: flex;
+        flex-direction: column-reverse; /* 最新のメッセージが下に来るようにする */
+      }
+      .highlight {
+        background-color: #ffffcc; /* ハイライトの背景色 */
+        font-weight: bold; /* 文字を太字に */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Conversation History</h1>
+    <div id="conversation_history"></div>
+  </body>
 </html>
