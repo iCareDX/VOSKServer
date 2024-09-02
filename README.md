@@ -1,3 +1,14 @@
+# Top level loop by Websocket server with browser
+
+## first start the 3 servers:
+### asr_server.py 
+### llm_server3.py
+### aques_server.py
+
+## Then start the toplevel program
+### browser_toplevel32.py
+
+
 # Top level loop by Websocket server
 
 ## first start the 3 servers:
@@ -7,6 +18,9 @@
 
 ## Then start the toplevel program
 ### toplevel0.py
+
+
+
 
 
 
